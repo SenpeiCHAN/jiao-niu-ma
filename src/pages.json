@@ -1,0 +1,66 @@
+{
+	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "脚牛马",
+				"backgroundColor": "#FAF7EF"
+			}
+		},
+		{
+			"path": "pages/debug/interactions",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "微交互调试",
+				"backgroundColor": "#F4F0E7"
+			}
+		},
+		{
+			"path": "pages/loading/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "开启牛马认证",
+				"backgroundColor": "#FAF7EF"
+			}
+		},
+		{
+			"path": "pages/matching/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "正在匹配人格",
+				"backgroundColor": "#FAF7EF"
+			}
+		},
+		{
+			"path": "pages/questions/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "脚牛马认证",
+				"backgroundColor": "#FAF7EF"
+			}
+		},
+		{
+			"path": "pages/results/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "脚牛马人格报告",
+				"backgroundColor": "#FAF7EF"
+			}
+		},
+		{
+			"path": "pages/shoes/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "新同事",
+				"backgroundColor": "#FAF7EF"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "脚牛马",
+		"navigationBarBackgroundColor": "#FAF7EF",
+		"backgroundColor": "#FAF7EF"
+	}
+}
