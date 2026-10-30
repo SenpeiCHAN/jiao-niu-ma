@@ -4,6 +4,10 @@ interface ImportMetaEnv {
   readonly VITE_CLOUDBASE_ENV_ID?: string
   readonly VITE_CLOUDBASE_PUBLISHABLE_KEY?: string
   readonly VITE_AI_FUNCTION_NAME?: string
+  readonly VITE_AI_SOURCE_INVOLUTION_URL?: string
+  readonly VITE_AI_SOURCE_SHOWOFF_URL?: string
+  readonly VITE_AI_SOURCE_SLACKER_URL?: string
+  readonly VITE_AI_SOURCE_LOVE_FEET_URL?: string
 }
 
 interface ImportMeta {

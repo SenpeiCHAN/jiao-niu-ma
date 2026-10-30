@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.cloudbase.net/cli/cloudbaserc.schema.json",
+  "version": "2.1",
+  "envId": "jioniuma-d1grzy3ma59a5bc55",
+  "functionRoot": "./cloudfunctions",
+  "functions": [
+    {
+      "name": "generateShoeImage",
+      "dir": "./cloudfunctions/generateShoeImage",
+      "handler": "index.main",
+      "runtime": "Nodejs20.19",
+      "timeout": 120,
+      "memorySize": 512,
+      "installDependency": true
+    }
+  ]
+}
