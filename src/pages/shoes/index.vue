@@ -73,17 +73,32 @@ const styleName: Record<AiShoeStyleKey, string> = {
   'love-feet': '爱你老脚型牛马',
 }
 
-const sourceImageByStyle: Record<AiShoeStyleKey, string> = {
-  involution: import.meta.env.VITE_AI_SOURCE_INVOLUTION_URL?.trim() || '',
-  showoff: import.meta.env.VITE_AI_SOURCE_SHOWOFF_URL?.trim() || '',
-  slacker: import.meta.env.VITE_AI_SOURCE_SLACKER_URL?.trim() || '',
-  'love-feet': import.meta.env.VITE_AI_SOURCE_LOVE_FEET_URL?.trim() || '',
+function bundledReferenceUrl(filename: string) {
+  // H5 发布后使用当前 GitHub Pages 站点上的 HTTPS 静态素材；小程序后续改用 CloudBase 存储 URL。
+  // #ifdef H5
+  if (typeof window !== 'undefined') {
+    const rawBase = import.meta.env.BASE_URL || '/'
+    const basePath = rawBase.endsWith('/') ? rawBase : `${rawBase}/`
+    return new URL(`${basePath}static/ai-references/${filename}`, window.location.origin).href
+  }
+  // #endif
+  return ''
 }
 
-const canGenerate = computed(() => Boolean(sourceImageByStyle[styleKey.value]))
+const sourceImageByStyle: Record<AiShoeStyleKey, string> = {
+  involution: import.meta.env.VITE_AI_SOURCE_INVOLUTION_URL?.trim() || bundledReferenceUrl('involution.png'),
+  showoff: import.meta.env.VITE_AI_SOURCE_SHOWOFF_URL?.trim() || bundledReferenceUrl('showoff.png'),
+  slacker: import.meta.env.VITE_AI_SOURCE_SLACKER_URL?.trim() || bundledReferenceUrl('slacker.png'),
+  'love-feet': import.meta.env.VITE_AI_SOURCE_LOVE_FEET_URL?.trim() || bundledReferenceUrl('love-feet.png'),
+}
+
+const canGenerate = computed(() => sourceImageByStyle[styleKey.value].startsWith('https://'))
 const generationMessage = computed(() => {
   if (generationError.value) return generationError.value
-  return canGenerate.value ? '点击生成你的新牛马' : '新牛马原型图尚未配置'
+  if (canGenerate.value) return '点击生成你的新牛马'
+  return sourceImageByStyle[styleKey.value]
+    ? '请在 HTTPS 演示站生成新牛马'
+    : '新牛马原型图尚未配置'
 })
 
 // 鞋款档案的前景主卡与四种人格工牌使用同一套 Figma 主色。

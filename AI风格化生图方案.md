@@ -82,8 +82,9 @@ lucen.plus OpenAI 兼容网关（Responses 生图能力待验证）
 - 当前服务商是第三方 OpenAI 兼容网关 `lucen.plus`，Codex 配置使用 `base_url = "https://lucen.plus/v1"`、`wire_api = "responses"`，主模型为 `gpt-5.5`；不是 OpenAI 官方 `api.openai.com`。
 - Lucen API Key 只放在云函数环境变量中，绝不放进 `VITE_`、GitHub、H5、小程序包、日志或文档。
 - 上述 Codex 配置只能证明该网关提供 Responses 兼容调用，不能证明它支持 `/images/edits`、参考图编辑或 Responses 的 `image_generation` 内置工具。
-- 在服务商模型目录和一次最小能力测试通过前，`AI_GENERATION_ENABLED` 必须保持 `false`。不得猜测 `https://lucen.plus/v1/images/edits` 可用，也不得先写死 `gpt-image-2.5-sunburst`。
-- 若 Lucen 支持 Responses 生图，目标链路为 `POST https://lucen.plus/v1/responses`：顶层主模型使用服务商实际开放的 `gpt-5.5`，并在 `image_generation` 工具中使用其模型目录实际返回的图像模型；输入原鞋图后强制 `action: "edit"`。
+- 2026-10-30 已通过账号模型目录确认 Lucen 开放 `gpt-5.5`、`gpt-image-2.5-sunburst`、`gpt-image-2.5-flare` 等图像模型；这确认了模型可见性，但真实 `image_generation` 工具调用仍需一次最小付费测试。
+- 当前云函数目标链路为 `POST https://lucen.plus/v1/responses`：顶层主模型使用 `gpt-5.5`，在 `image_generation` 工具中使用 `gpt-image-2.5-sunburst`；输入原鞋图后强制 `action: "edit"`，并设置 `store: false`。
+- 首次真实能力测试前，`AI_GENERATION_ENABLED` 保持 `false`。不得猜测 `https://lucen.plus/v1/images/edits` 可用。
 - 若 Lucen 只支持兼容 Images Edit，则改用服务商明确提供的完整 endpoint 和实际模型名。两种后端只选经验证的一种，不能混用请求体。
 - 首版输出 `1024 × 1024`、`high`、透明 WebP。正式上线前应把 Base64 写入 CloudBase 云存储，并只向客户端返回短期地址。
 
@@ -126,8 +127,8 @@ lucen.plus OpenAI 兼容网关（Responses 生图能力待验证）
 2. 开启匿名登录并仅赋予目标云函数调用权限。
 3. 把四张方向参考图和测试原鞋放入可追踪的设计资产目录或 CloudBase 存储。
 4. 在云函数中增加用户/IP/时间窗口限流、每日额度和失败重试上限。
-5. 先读取 Lucen 模型目录，并以不包含用户图片的最小请求验证 `gpt-5.5 + image_generation` 或 Images Edit 能力。
-6. 根据验证结果改造 `generateShoeImage` 的请求协议；配置服务端 Lucen Key 后才将 `AI_GENERATION_ENABLED=true`，并进行首轮真实调用。
+5. Lucen 模型目录读取已完成；配置服务端 Lucen Key 后，短时将 `AI_GENERATION_ENABLED=true`，以一张已公开的项目参考图验证 `gpt-5.5 + image_generation` 能力。
+6. 若验证通过，保留 Responses 协议并开始首轮风格回归；若返回工具不支持，再根据服务商明确文档评估 Images Edit，不盲目切换 endpoint。
 7. 建立 40 张以上回归集，记录模型、Prompt 版本、输入、输出、耗时、费用和评分。
 8. 将通过验收的生成结果接入鞋款档案页，并补齐“生成中、失败、重试、保存”微交互。
 

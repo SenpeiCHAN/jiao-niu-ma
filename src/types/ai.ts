@@ -12,7 +12,7 @@ export const RESULT_TO_AI_STYLE: Record<ExistingResultKey, AiShoeStyleKey> = {
 
 export interface GenerateShoeImageInput {
   styleKey: AiShoeStyleKey
-  /** 必须是 OpenAI 能读取的 HTTPS 临时地址，建议来自 CloudBase 云存储。 */
+  /** 必须是 AI 服务商能读取的 HTTPS 地址，建议来自 CloudBase 云存储或当前演示站。 */
   sourceImageUrl: string
   /** 可选颜色方向，例如“雾蓝 + 银灰点缀”。不得包含主要造型修改指令。 */
   colorDirection?: string
@@ -26,6 +26,7 @@ export interface GeneratedShoeImage {
   mimeType: 'image/webp'
   model: string
   promptVersion: string
+  providerResponseId?: string
   requestId?: string
 }
 

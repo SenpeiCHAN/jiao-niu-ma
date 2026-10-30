@@ -4,8 +4,9 @@ const crypto = require('crypto')
 const https = require('https')
 const { PROMPT_VERSION, STYLE_LIBRARY, buildStylePrompt } = require('./prompt-library')
 
-const DEFAULT_MODEL = 'gpt-image-2.5-sunburst'
-const DEFAULT_OPENAI_ENDPOINT = 'https://api.openai.com/v1/images/edits'
+const DEFAULT_API_BASE_URL = 'https://lucen.plus/v1'
+const DEFAULT_MAIN_MODEL = 'gpt-5.5'
+const DEFAULT_IMAGE_MODEL = 'gpt-image-2.5-sunburst'
 
 function requestJson(url, options, payload) {
   return new Promise((resolve, reject) => {
@@ -18,12 +19,12 @@ function requestJson(url, options, payload) {
         try {
           body = raw ? JSON.parse(raw) : {}
         } catch {
-          body = { error: { message: 'OpenAI returned a non-JSON response' } }
+          body = { error: { message: 'AI provider returned a non-JSON response' } }
         }
         resolve({ statusCode: response.statusCode || 500, body })
       })
     })
-    request.setTimeout(120000, () => request.destroy(new Error('OPENAI_TIMEOUT')))
+    request.setTimeout(110000, () => request.destroy(new Error('AI_PROVIDER_TIMEOUT')))
     request.on('error', reject)
     request.write(payload)
     request.end()
@@ -61,12 +62,21 @@ function fail(code, message) {
   return { ok: false, code, message }
 }
 
+function responsesEndpoint() {
+  const explicitEndpoint = process.env.AI_RESPONSES_ENDPOINT?.trim()
+  if (explicitEndpoint) return new URL(explicitEndpoint)
+
+  const baseUrl = (process.env.AI_API_BASE_URL || DEFAULT_API_BASE_URL).trim().replace(/\/+$/, '')
+  return new URL(`${baseUrl}/responses`)
+}
+
 exports.main = async (event, context) => {
   if (process.env.AI_GENERATION_ENABLED !== 'true') {
     return fail('AI_GENERATION_DISABLED', 'AI 生图服务尚未开放')
   }
-  if (!process.env.OPENAI_API_KEY) {
-    return fail('OPENAI_API_KEY_MISSING', 'AI 服务端密钥尚未配置')
+  const providerKey = process.env.LUCEN_API_KEY || process.env.OPENAI_API_KEY
+  if (!providerKey) {
+    return fail('AI_API_KEY_MISSING', 'AI 服务端密钥尚未配置')
   }
 
   const input = normalizeEvent(event)
@@ -77,62 +87,86 @@ exports.main = async (event, context) => {
   }
 
   const prompt = buildStylePrompt(input)
-  const model = process.env.OPENAI_IMAGE_MODEL || DEFAULT_MODEL
-  const openAiEndpoint = process.env.OPENAI_IMAGE_ENDPOINT || DEFAULT_OPENAI_ENDPOINT
-  let parsedEndpoint
+  const mainModel = process.env.AI_MAIN_MODEL || DEFAULT_MAIN_MODEL
+  const imageModel = process.env.AI_IMAGE_MODEL || process.env.OPENAI_IMAGE_MODEL || DEFAULT_IMAGE_MODEL
+  let endpoint
   try {
-    parsedEndpoint = new URL(openAiEndpoint)
-    if (parsedEndpoint.protocol !== 'https:') throw new Error('HTTPS_REQUIRED')
+    endpoint = responsesEndpoint()
+    if (endpoint.protocol !== 'https:') throw new Error('HTTPS_REQUIRED')
   } catch {
-    return fail('OPENAI_ENDPOINT_INVALID', '图像服务地址配置无效')
+    return fail('AI_ENDPOINT_INVALID', '图像服务地址配置无效')
   }
+
   const requestBody = JSON.stringify({
-    model,
-    images: [{ image_url: input.sourceImageUrl }],
-    prompt,
-    size: '1024x1024',
-    quality: 'high',
-    background: 'transparent',
-    output_format: 'webp',
-    output_compression: 88,
-    n: 1,
-    moderation: 'auto',
+    model: mainModel,
+    input: [
+      {
+        role: 'user',
+        content: [
+          { type: 'input_text', text: prompt },
+          { type: 'input_image', image_url: input.sourceImageUrl, detail: 'auto' },
+        ],
+      },
+    ],
+    tools: [
+      {
+        type: 'image_generation',
+        model: imageModel,
+        action: 'edit',
+        size: '1024x1024',
+        quality: 'high',
+        background: 'transparent',
+        output_format: 'webp',
+        output_compression: 88,
+      },
+    ],
+    tool_choice: { type: 'image_generation' },
+    store: false,
     safety_identifier: safetyIdentifier(event, context),
   })
 
   let upstream
   try {
-    upstream = await requestJson(parsedEndpoint, {
+    upstream = await requestJson(endpoint, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${providerKey}`,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(requestBody),
       },
     }, requestBody)
   } catch (error) {
-    console.error('OpenAI image request failed', error.message)
-    return fail('OPENAI_REQUEST_FAILED', '图像服务暂时不可用，请稍后重试')
+    console.error('AI provider request failed', error.message)
+    return fail('AI_REQUEST_FAILED', '图像服务暂时不可用，请稍后重试')
   }
 
   if (upstream.statusCode < 200 || upstream.statusCode >= 300) {
-    console.error('OpenAI image request rejected', upstream.statusCode, upstream.body?.error?.code)
-    return fail('OPENAI_REQUEST_REJECTED', '图像服务未能完成本次请求')
+    console.error(
+      'AI provider request rejected',
+      upstream.statusCode,
+      upstream.body?.error?.code,
+      upstream.body?.error?.type,
+    )
+    return fail('AI_REQUEST_REJECTED', '图像服务未能完成本次请求')
   }
 
-  const image = upstream.body?.data?.[0]
-  if (!image?.b64_json) {
-    return fail('OPENAI_IMAGE_EMPTY', '图像服务没有返回有效图片')
+  const imageCall = upstream.body?.output?.find(
+    (item) => item?.type === 'image_generation_call' && typeof item.result === 'string',
+  )
+  if (!imageCall?.result) {
+    console.error('AI provider response contained no image', upstream.body?.id, upstream.body?.status)
+    return fail('AI_IMAGE_EMPTY', '图像服务没有返回有效图片')
   }
 
   return {
     ok: true,
     data: {
       styleKey: input.styleKey,
-      imageBase64: image.b64_json,
+      imageBase64: imageCall.result,
       mimeType: 'image/webp',
-      model,
+      model: imageModel,
       promptVersion: PROMPT_VERSION,
+      providerResponseId: upstream.body?.id,
       requestId: context?.request_id,
     },
   }
