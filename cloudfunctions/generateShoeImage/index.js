@@ -86,7 +86,6 @@ exports.main = async (event, context) => {
     return fail(error.message, '生图参数不符合要求')
   }
 
-  const prompt = buildStylePrompt(input)
   const mainModel = process.env.AI_MAIN_MODEL || DEFAULT_MAIN_MODEL
   const imageModel = process.env.AI_IMAGE_MODEL || process.env.OPENAI_IMAGE_MODEL || DEFAULT_IMAGE_MODEL
   let endpoint
@@ -103,7 +102,7 @@ exports.main = async (event, context) => {
       {
         role: 'user',
         content: [
-          { type: 'input_text', text: prompt },
+          { type: 'input_text', text: buildStylePrompt(input) },
           { type: 'input_image', image_url: input.sourceImageUrl, detail: 'auto' },
         ],
       },
@@ -141,11 +140,15 @@ exports.main = async (event, context) => {
   }
 
   if (upstream.statusCode < 200 || upstream.statusCode >= 300) {
+    const upstreamMessage = typeof upstream.body?.error?.message === 'string'
+      ? upstream.body.error.message.slice(0, 240)
+      : ''
     console.error(
       'AI provider request rejected',
       upstream.statusCode,
       upstream.body?.error?.code,
       upstream.body?.error?.type,
+      upstreamMessage,
     )
     return fail('AI_REQUEST_REJECTED', '图像服务未能完成本次请求')
   }

@@ -81,6 +81,7 @@ lucen.plus OpenAI 兼容网关（Responses 生图能力待验证）
 - H5 使用 `@cloudbase/js-sdk`；微信小程序继续共享相同业务入参，平台调用层可在联调时适配。
 - 当前服务商是第三方 OpenAI 兼容网关 `lucen.plus`，Codex 配置使用 `base_url = "https://lucen.plus/v1"`、`wire_api = "responses"`，主模型为 `gpt-5.5`；不是 OpenAI 官方 `api.openai.com`。
 - Lucen API Key 只放在云函数环境变量中，绝不放进 `VITE_`、GitHub、H5、小程序包、日志或文档。
+- 云函数的运行时环境变量只在 CloudBase 控制台维护；`cloudbaserc.json` 不声明这些变量，以避免代码部署覆盖控制台中的密钥。
 - 上述 Codex 配置只能证明该网关提供 Responses 兼容调用，不能证明它支持 `/images/edits`、参考图编辑或 Responses 的 `image_generation` 内置工具。
 - 2026-10-30 已通过账号模型目录确认 Lucen 开放 `gpt-5.5`、`gpt-image-2.5-sunburst`、`gpt-image-2.5-flare` 等图像模型；这确认了模型可见性，但真实 `image_generation` 工具调用仍需一次最小付费测试。
 - 当前云函数目标链路为 `POST https://lucen.plus/v1/responses`：顶层主模型使用 `gpt-5.5`，在 `image_generation` 工具中使用 `gpt-image-2.5-sunburst`；输入原鞋图后强制 `action: "edit"`，并设置 `store: false`。
