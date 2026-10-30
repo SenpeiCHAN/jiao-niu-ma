@@ -72,16 +72,19 @@ H5 / 微信小程序
 CloudBase 身份认证
     ↓ 匿名会话 + FunctionsHttpApiAllow 最小权限
 generateShoeImage 云函数
-    ↓ 服务端拼 Prompt，读取服务端 OPENAI_API_KEY
-OpenAI Images Edit
+    ↓ 服务端拼 Prompt，读取服务端 Lucen API Key
+lucen.plus OpenAI 兼容网关（Responses 生图能力待验证）
     ↓ WebP Base64（首版）
 前端预览
 ```
 
 - H5 使用 `@cloudbase/js-sdk`；微信小程序继续共享相同业务入参，平台调用层可在联调时适配。
-- OpenAI Key 只放在云函数环境变量中，绝不放进 `VITE_`、GitHub、H5 或小程序包。
-- 推荐质量基准模型为 `gpt-image-2.5-sunburst`；模型名由 `OPENAI_IMAGE_MODEL` 控制，便于后续在质量与速度之间做 A/B 测试。
-- 默认请求 OpenAI 官方 `https://api.openai.com/v1/images/edits`。如果 Key 来自第三方兼容服务，必须同时确认它支持 Images Edit、参考图输入和目标模型，再通过服务端 `OPENAI_IMAGE_ENDPOINT` 配置完整地址；不能只凭 Key 外观推测服务商。
+- 当前服务商是第三方 OpenAI 兼容网关 `lucen.plus`，Codex 配置使用 `base_url = "https://lucen.plus/v1"`、`wire_api = "responses"`，主模型为 `gpt-5.5`；不是 OpenAI 官方 `api.openai.com`。
+- Lucen API Key 只放在云函数环境变量中，绝不放进 `VITE_`、GitHub、H5、小程序包、日志或文档。
+- 上述 Codex 配置只能证明该网关提供 Responses 兼容调用，不能证明它支持 `/images/edits`、参考图编辑或 Responses 的 `image_generation` 内置工具。
+- 在服务商模型目录和一次最小能力测试通过前，`AI_GENERATION_ENABLED` 必须保持 `false`。不得猜测 `https://lucen.plus/v1/images/edits` 可用，也不得先写死 `gpt-image-2.5-sunburst`。
+- 若 Lucen 支持 Responses 生图，目标链路为 `POST https://lucen.plus/v1/responses`：顶层主模型使用服务商实际开放的 `gpt-5.5`，并在 `image_generation` 工具中使用其模型目录实际返回的图像模型；输入原鞋图后强制 `action: "edit"`。
+- 若 Lucen 只支持兼容 Images Edit，则改用服务商明确提供的完整 endpoint 和实际模型名。两种后端只选经验证的一种，不能混用请求体。
 - 首版输出 `1024 × 1024`、`high`、透明 WebP。正式上线前应把 Base64 写入 CloudBase 云存储，并只向客户端返回短期地址。
 
 ## 5. 接口契约
@@ -123,9 +126,10 @@ OpenAI Images Edit
 2. 开启匿名登录并仅赋予目标云函数调用权限。
 3. 把四张方向参考图和测试原鞋放入可追踪的设计资产目录或 CloudBase 存储。
 4. 在云函数中增加用户/IP/时间窗口限流、每日额度和失败重试上限。
-5. 配置 `OPENAI_API_KEY`、`AI_GENERATION_ENABLED=true` 后进行首轮真实调用。
-6. 建立 40 张以上回归集，记录模型、Prompt 版本、输入、输出、耗时、费用和评分。
-7. 将通过验收的生成结果接入鞋款档案页，并补齐“生成中、失败、重试、保存”微交互。
+5. 先读取 Lucen 模型目录，并以不包含用户图片的最小请求验证 `gpt-5.5 + image_generation` 或 Images Edit 能力。
+6. 根据验证结果改造 `generateShoeImage` 的请求协议；配置服务端 Lucen Key 后才将 `AI_GENERATION_ENABLED=true`，并进行首轮真实调用。
+7. 建立 40 张以上回归集，记录模型、Prompt 版本、输入、输出、耗时、费用和评分。
+8. 将通过验收的生成结果接入鞋款档案页，并补齐“生成中、失败、重试、保存”微交互。
 
 ## 8. 鞋款档案页展示约束
 
