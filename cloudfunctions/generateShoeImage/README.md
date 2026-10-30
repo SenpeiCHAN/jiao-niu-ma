@@ -7,6 +7,7 @@
 - `OPENAI_API_KEY`：必填，只能配置在 CloudBase 云函数环境变量中。
 - `AI_GENERATION_ENABLED`：设为 `true` 后才允许实际生图；默认关闭可避免误调用产生费用。
 - `OPENAI_IMAGE_MODEL`：可选，默认 `gpt-image-2.5-sunburst`。
+- `OPENAI_IMAGE_ENDPOINT`：可选，默认 OpenAI 官方 `https://api.openai.com/v1/images/edits`。只有确认 Key 来自兼容服务商时才填写其完整 Images Edit HTTPS 地址。
 
 ## 输入
 

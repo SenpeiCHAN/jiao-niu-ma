@@ -5,7 +5,7 @@ const https = require('https')
 const { PROMPT_VERSION, STYLE_LIBRARY, buildStylePrompt } = require('./prompt-library')
 
 const DEFAULT_MODEL = 'gpt-image-2.5-sunburst'
-const OPENAI_ENDPOINT = 'https://api.openai.com/v1/images/edits'
+const DEFAULT_OPENAI_ENDPOINT = 'https://api.openai.com/v1/images/edits'
 
 function requestJson(url, options, payload) {
   return new Promise((resolve, reject) => {
@@ -78,6 +78,14 @@ exports.main = async (event, context) => {
 
   const prompt = buildStylePrompt(input)
   const model = process.env.OPENAI_IMAGE_MODEL || DEFAULT_MODEL
+  const openAiEndpoint = process.env.OPENAI_IMAGE_ENDPOINT || DEFAULT_OPENAI_ENDPOINT
+  let parsedEndpoint
+  try {
+    parsedEndpoint = new URL(openAiEndpoint)
+    if (parsedEndpoint.protocol !== 'https:') throw new Error('HTTPS_REQUIRED')
+  } catch {
+    return fail('OPENAI_ENDPOINT_INVALID', '图像服务地址配置无效')
+  }
   const requestBody = JSON.stringify({
     model,
     images: [{ image_url: input.sourceImageUrl }],
@@ -94,7 +102,7 @@ exports.main = async (event, context) => {
 
   let upstream
   try {
-    upstream = await requestJson(OPENAI_ENDPOINT, {
+    upstream = await requestJson(parsedEndpoint, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,

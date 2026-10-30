@@ -81,6 +81,7 @@ OpenAI Images Edit
 - H5 使用 `@cloudbase/js-sdk`；微信小程序继续共享相同业务入参，平台调用层可在联调时适配。
 - OpenAI Key 只放在云函数环境变量中，绝不放进 `VITE_`、GitHub、H5 或小程序包。
 - 推荐质量基准模型为 `gpt-image-2.5-sunburst`；模型名由 `OPENAI_IMAGE_MODEL` 控制，便于后续在质量与速度之间做 A/B 测试。
+- 默认请求 OpenAI 官方 `https://api.openai.com/v1/images/edits`。如果 Key 来自第三方兼容服务，必须同时确认它支持 Images Edit、参考图输入和目标模型，再通过服务端 `OPENAI_IMAGE_ENDPOINT` 配置完整地址；不能只凭 Key 外观推测服务商。
 - 首版输出 `1024 × 1024`、`high`、透明 WebP。正式上线前应把 Base64 写入 CloudBase 云存储，并只向客户端返回短期地址。
 
 ## 5. 接口契约
